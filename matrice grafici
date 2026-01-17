@@ -1,0 +1,34 @@
+import matplotlib.pyplot as plt
+
+# 1. Definiamo le colonne
+cols = ['map', 'mat', 'cover', 'rugged']
+n = len(cols)
+
+# 2. Creiamo la griglia 3x2
+fig, axes = plt.subplots(3, 2, figsize=(8, 10))
+plt.subplots_adjust(hspace=0.5, wspace=0.3)
+
+# Trasformiamo la matrice axes (3,2) in una lista piatta di 6 elementi
+axes_flat = axes.flatten()
+plot_idx = 0  # Questo indice gestirà i quadratini da 0 a 5
+
+for i in range(n):
+    for j in range(i + 1, n):
+        # Prendiamo la coppia di colonne
+        col_a = cols[i]
+        col_b = cols[j]
+        
+        # Selezioniamo il quadratino corrente usando plot_idx
+        ax = axes_flat[plot_idx]
+        
+        ax.scatter(birds_final[col_a], birds_final[col_b], alpha=0.5, s=10)
+        ax.set_title(f"{col_a} vs {col_b}")
+        ax.set_xlabel(col_a)
+        ax.set_ylabel(col_b)
+        
+        # IMPORTANTE: Incrementiamo l'indice del grafico per la prossima coppia
+        plot_idx += 1
+
+plt.suptitle("Matrix of Scatter Plots for Environmental Variables", fontsize=16)
+plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+plt.show()
