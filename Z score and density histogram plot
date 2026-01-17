@@ -1,0 +1,22 @@
+# 1. Calcolo della standardizzazione
+# Sottraiamo la media e dividiamo per la deviazione standard
+mean_val = birds_final['total_in'].mean()
+std_val = birds_final['total_in'].std()
+
+birds_final['total_in_std'] = (birds_final['total_in'] - mean_val) / std_val
+
+# 2. Creazione del Density Histogram
+# Usiamo il metodo .plot.hist() con l'argomento density=True
+birds_final['total_in_std'].plot.hist(
+    bins=30, 
+    density=True, 
+    edgecolor='black', 
+    alpha=0.7,
+    title='Density Histogram of Standardized total_in'
+)
+
+# Aggiungiamo etichette per chiarezza
+import matplotlib.pyplot as plt
+plt.xlabel('Standardized Value (Z-score)')
+plt.ylabel('Density')
+plt.show()
