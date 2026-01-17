@@ -1,0 +1,18 @@
+def sum_triplets(series: "pd.Series[int]") -> "pd.Series[int]":
+    """
+    Calcola una nuova serie - più corta - che è il
+    risultato della somma di tutte le triplette progressive
+    della serie originale
+
+    >>> sum_triplets(pd.Series([1, 2, 3, 4, 5]))
+    0     6
+    1     9
+    2     12
+    dtype: int64
+    """
+    sums = []
+    for i in range (0, len(series)-2):
+        somma = series.iloc[i]+ series.iloc[i+1] + series.iloc[i+2]
+        sums.append(somma)
+    return pd.Series(sums, dtype = 'int64')
+        
