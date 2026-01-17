@@ -1,0 +1,28 @@
+
+# 1. Definiamo il modello PyMC
+with pm.Model() as map_model:
+    # --- Priors (Distribuzioni a priori) ---
+    # alpha: Normale(0, 3)
+    alpha = pm.Normal('alpha', mu=0, sigma=3)
+    
+    # beta: Normale(0, 5)
+    beta = pm.Normal('beta', mu=0, sigma=5)
+    
+    # sigma: Esponenziale(lambda=1) -> In PyMC sigma è 1/lambda
+    sigma = pm.Exponential('sigma', lam=1)
+    
+    # --- Modello Lineare (La media mu) ---
+    # mu = alpha + beta * cover
+    mu = alpha + beta * birds_final['cover'].values
+    
+    # --- Likelihood (Verosimiglianza) ---
+    # Osserviamo i valori reali di 'map'
+    y_obs = pm.Normal('y_obs', mu=mu, sigma=sigma, observed=birds_final['map'].values)
+    
+    # 2. Campionamento (MCMC)
+    # Generiamo i campioni dalla distribuzione posteriore
+    trace = pm.sample(draws=1000, tune=1000, return_inferencedata=True)
+
+# 3. Plot della Posterior
+az.plot_trace(trace)
+az.plot_posterior(trace)
