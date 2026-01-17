@@ -1,0 +1,13 @@
+moltiplicazione tra intere colonne 
+# Calculate scat samples: total samples multiplied by the p_scat proportion
+birds['scat_samples'] = birds['samples'] * birds['p_scat']
+
+# Calculate stomach samples: total samples multiplied by (1 - p_scat)
+birds['stomach_samples'] = birds['samples'] * (1 - birds['p_scat'])
+
+# Compute the total sums for the entire dataset
+total_scats = birds['scat_samples'].sum()
+total_stomachs = birds['stomach_samples'].sum()
+
+print(f"Total scat samples: {total_scats:.2f}")
+print(f"Total stomach samples: {total_stomachs:.2f}")
