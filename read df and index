@@ -1,0 +1,10 @@
+import pandas as pd
+
+# Read the dataset and set the 'ID' column as the index
+birds = pd.read_csv('bird_foo_data.csv', index_col='ID')
+
+# Display the first few rows to verify
+print(birds.head())
+
+# Check the column names and data types
+print(birds.info())
