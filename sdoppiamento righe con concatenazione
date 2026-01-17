@@ -1,0 +1,40 @@
+import pandas as pd
+import numpy as np
+
+# 1. Creiamo una copia per non sporcare il DataFrame originale
+birds_expanded = birds.copy()
+
+# 2. Identifichiamo le righe da sdoppiare
+mask_both = birds_expanded['type'].isin(["both (not stated)", "scat & stomach"]) #seleziono tutte le righe che contengono le diciture specificate
+to_split = birds_expanded[mask_both].copy() #copio le righe in cui vi è il valore 'True'
+remaining = birds_expanded[~mask_both].copy() #tilde significa diverso da
+
+# 3. Creiamo la versione "scat" per le righe sdoppiate
+scats = to_split.copy()
+scats['type'] = 'scat' #cambia tutte le righe inserendo sotto il type il valore scat
+# Usiamo floor per l'intero e aggiorniamo p_scat a 1.0
+scats['samples'] = np.floor(to_split['samples'] * to_split['p_scat']).astype(int) #creiamo una colonna al volo in cui il numero di samples è il numero arrotondato per difetto della moltiplicazione tra i samples e la propabilità che si tratti di scat
+
+
+# 4. Creiamo la versione "stomach" per le righe sdoppiate
+stomachs = to_split.copy()
+stomachs['type'] = 'stomach'
+# Per preservare la somma, sottraiamo il valore assegnato a scat dal totale originale
+stomachs['samples'] = (to_split['samples'] - scats['samples']).astype(int)
+    
+# 5. Pulizia e Concatenazione
+birds_final = pd.concat([remaining, scats, stomachs]).sort_index()
+
+# Verifica veloce:
+print(f"Righe originali: {len(birds)}")
+print(f"Righe dopo espansione: {len(birds_final)}")
+# VERIFICA: La somma totale dei campioni prima e dopo è la stessa?
+original_sum = birds['samples'].sum()
+final_sum = birds_final['samples'].sum()
+
+if original_sum == final_sum:
+    print(f"✅ Verifica superata! Il totale dei campioni è rimasto {original_sum}")
+else:
+    print(f"❌ Errore! Totale originale: {original_sum}, Totale finale: {final_sum}")
+    print(f"Differenza: {original_sum - final_sum}")
+        
