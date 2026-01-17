@@ -1,0 +1,179 @@
+import pandas as pd
+import pymc as pm
+import arviz as az
+import matplotlib.pyplot as plt
+
+# Read the dataset and set the 'ID' column as the index
+birds = pd.read_csv('bird_foo_data.csv', index_col='ID')
+
+# Display the first few rows to verify
+print(birds.head())
+
+# Check the column names and data types
+print(birds.info())
+
+# Calculate scat samples: total samples multiplied by the p_scat proportion
+birds['scat_samples'] = birds['samples'] * birds['p_scat']
+
+# Calculate stomach samples: total samples multiplied by (1 - p_scat)
+birds['stomach_samples'] = birds['samples'] * (1 - birds['p_scat'])
+
+# Compute the total sums for the entire dataset
+total_scats = birds['scat_samples'].sum()
+total_stomachs = birds['stomach_samples'].sum()
+
+print(f"Total scat samples: {total_scats:.2f}")
+print(f"Total stomach samples: {total_stomachs:.2f}")
+
+
+def sum_triplets(series: "pd.Series[int]") -> "pd.Series[int]":
+    """
+    Calcola una nuova serie - più corta - che è il
+    risultato della somma di tutte le triplette progressive
+    della serie originale
+
+    >>> sum_triplets(pd.Series([1, 2, 3, 4, 5]))
+    0     6
+    1     9
+    2     12
+    dtype: int64
+    """
+    sums = []
+    for i in range (0, len(series)-2):
+        somma = series.iloc[i]+ series.iloc[i+1] + series.iloc[i+2]
+        sums.append(somma)
+    return pd.Series(sums, dtype = 'int64')
+
+# Applichiamo la funzione alla colonna 'samples'
+samples_triplets = sum_triplets(birds['samples'])
+
+# Visualizziamo i primi valori del risultato
+print(samples_triplets.head())
+
+import pandas as pd
+import numpy as np
+
+# 1. Creiamo una copia per non sporcare il DataFrame originale
+birds_expanded = birds.copy()
+
+# 2. Identifichiamo le righe da sdoppiare
+mask_both = birds_expanded['type'].isin(["both (not stated)", "scat & stomach"]) #seleziono tutte le righe che contengono le diciture specificate
+to_split = birds_expanded[mask_both].copy() #copio le righe in cui vi è il valore 'True'
+remaining = birds_expanded[~mask_both].copy() #tilde significa diverso da
+
+# 3. Creiamo la versione "scat" per le righe sdoppiate
+scats = to_split.copy()
+scats['type'] = 'scat' #cambia tutte le righe inserendo sotto il type il valore scat
+# Usiamo floor per l'intero e aggiorniamo p_scat a 1.0
+scats['samples'] = np.floor(to_split['samples'] * to_split['p_scat']).astype(int) #creiamo una colonna al volo in cui il numero di samples è il numero arrotondato per difetto della moltiplicazione tra i samples e la propabilità che si tratti di scat
+
+
+# 4. Creiamo la versione "stomach" per le righe sdoppiate
+stomachs = to_split.copy()
+stomachs['type'] = 'stomach'
+# Per preservare la somma, sottraiamo il valore assegnato a scat dal totale originale
+stomachs['samples'] = (to_split['samples'] - scats['samples']).astype(int)
+    
+# 5. Pulizia e Concatenazione
+birds_final = pd.concat([remaining, scats, stomachs]).sort_index()
+
+# Verifica veloce:
+print(f"Righe originali: {len(birds)}")
+print(f"Righe dopo espansione: {len(birds_final)}")
+# VERIFICA: La somma totale dei campioni prima e dopo è la stessa?
+original_sum = birds['samples'].sum()
+final_sum = birds_final['samples'].sum()
+
+if original_sum == final_sum:
+    print(f"✅ Verifica superata! Il totale dei campioni è rimasto {original_sum}")
+else:
+    print(f"❌ Errore! Totale originale: {original_sum}, Totale finale: {final_sum}")
+    print(f"Differenza: {original_sum - final_sum}")
+        
+
+# 1. Calcolo della standardizzazione
+# Sottraiamo la media e dividiamo per la deviazione standard
+mean_val = birds_final['total_in'].mean()
+std_val = birds_final['total_in'].std()
+
+birds_final['total_in_std'] = (birds_final['total_in'] - mean_val) / std_val
+
+# 2. Creazione del Density Histogram
+# Usiamo il metodo .plot.hist() con l'argomento density=True
+birds_final['total_in_std'].plot.hist(
+    bins=30, 
+    density=True, 
+    edgecolor='black', 
+    alpha=0.7,
+    title='Density Histogram of Standardized total_in'
+)
+
+# Aggiungiamo etichette per chiarezza
+import matplotlib.pyplot as plt
+plt.xlabel('Standardized Value (Z-score)')
+plt.ylabel('Density')
+plt.show()
+
+import matplotlib.pyplot as plt
+
+# 1. Definiamo le colonne
+cols = ['map', 'mat', 'cover', 'rugged']
+n = len(cols)
+
+# 2. Creiamo la griglia 3x2
+fig, axes = plt.subplots(3, 2, figsize=(8, 10))
+plt.subplots_adjust(hspace=0.5, wspace=0.3)
+
+# Trasformiamo la matrice axes (3,2) in una lista piatta di 6 elementi
+axes_flat = axes.flatten()
+plot_idx = 0  # Questo indice gestirà i quadratini da 0 a 5
+
+for i in range(n):
+    for j in range(i + 1, n):
+        # Prendiamo la coppia di colonne
+        col_a = cols[i]
+        col_b = cols[j]
+        
+        # Selezioniamo il quadratino corrente usando plot_idx
+        ax = axes_flat[plot_idx]
+        
+        ax.scatter(birds_final[col_a], birds_final[col_b], alpha=0.5, s=10)
+        ax.set_title(f"{col_a} vs {col_b}")
+        ax.set_xlabel(col_a)
+        ax.set_ylabel(col_b)
+        
+        # IMPORTANTE: Incrementiamo l'indice del grafico per la prossima coppia
+        plot_idx += 1
+
+plt.suptitle("Matrix of Scatter Plots for Environmental Variables", fontsize=16)
+plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+plt.show()
+
+
+# 1. Definiamo il modello PyMC
+with pm.Model() as map_model:
+    # --- Priors (Distribuzioni a priori) ---
+    # alpha: Normale(0, 3)
+    alpha = pm.Normal('alpha', mu=0, sigma=3)
+    
+    # beta: Normale(0, 5)
+    beta = pm.Normal('beta', mu=0, sigma=5)
+    
+    # sigma: Esponenziale(lambda=1) -> In PyMC sigma è 1/lambda
+    sigma = pm.Exponential('sigma', lam=1)
+    
+    # --- Modello Lineare (La media mu) ---
+    # mu = alpha + beta * cover
+    mu = alpha + beta * birds_final['cover'].values
+    
+    # --- Likelihood (Verosimiglianza) ---
+    # Osserviamo i valori reali di 'map'
+    y_obs = pm.Normal('y_obs', mu=mu, sigma=sigma, observed=birds_final['map'].values)
+    
+    # 2. Campionamento (MCMC)
+    # Generiamo i campioni dalla distribuzione posteriore
+    trace = pm.sample(draws=1000, tune=1000, return_inferencedata=True)
+
+# 3. Plot della Posterior
+az.plot_trace(trace)
+az.plot_posterior(trace)
