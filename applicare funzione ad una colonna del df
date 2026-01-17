@@ -1,0 +1,5 @@
+# Applichiamo la funzione alla colonna 'samples'
+samples_triplets = sum_triplets(birds['samples'])
+
+# Visualizziamo i primi valori del risultato
+print(samples_triplets.head())
